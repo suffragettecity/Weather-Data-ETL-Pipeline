@@ -12,11 +12,19 @@ load_dotenv()
 def extract_weather_data():
     logging.info("Starting data extraction...")
 
-    base_url = os.getenv("WEATHER_API_URL")
+    base_url = os.getenv("OPENWEATHER_API_URL")
+    api_key = os.getenv("OPENWEATHER_API_KEY")
+
+    params = {
+        "lat": -12.05,       # latitude and longitude for Lima, Peru
+        "long": -77.04,
+        "appid": api_key,
+        "units": "metric",
+    }
 
     try:
         # pass params dictionary directly to requests.get
-        response = requests.get(base_url, timeout=10)
+        response = requests.get(base_url, params=params, timeout=10)
         response.raise_for_status()
         logging.info("Extraction successful")
         return response.json()
@@ -28,18 +36,28 @@ def extract_weather_data():
 def transform_weather_data(raw_data):
     logging.info("Transforming raw data...")
     try:
-        hourly_data = raw_data["hourly"]
-        df = pd.DataFrame(
-            {
-                "timestamp": hourly_data["time"],
-                "temperature_c": hourly_data["temperature_2m"],
-                "humidity_pct": hourly_data["relative_humidity_2m"],
+        hourly_data = raw_data["list"]
+        cleaned_rows = []
+
+        for block in hourly_data:
+            row = {
+                "timestamp": block["dt_txt"],
+                "temperature_c": block["main"]['temp'],
+                "humidity_pct": block["main"]["humidity"],
+                "weather_main": block["weather"][0]["main"],
+                "weather_description": block["weather"][0]["description"],
+                "extracted_at": datetime.now(),
             }
-        )
+            cleaned_rows.append(row)
+
+        df = pd.DataFrame(cleaned_rows)
+
         df["timestamp"] = pd.to_datetime(df['timestamp'])
-        df["extracted_at"] = datetime.now()
         df.dropna(subset=["timestamp", "temperature_c"])
+
+        logging.info("Transformation successful")
         return df
+
     except KeyError as e:
         logging.error(f"Transformation failed: {e}")
         raise
@@ -62,7 +80,7 @@ def load_to_postgres(df):
 
     try:
         engine = create_engine(db_url)
-        df.to_sql("hourly_forecast", engine, if_exists="append", index=False)
+        df.to_sql("silver_weather_forecast", engine, if_exists="append", index=False)
         logging.info("Data load to PostgreSQL successful.")
     except Exception as e:
         logging.error(f"PostgreSQL load failed: {e}")
