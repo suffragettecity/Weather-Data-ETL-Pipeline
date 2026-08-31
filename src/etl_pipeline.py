@@ -31,11 +31,6 @@ def extract_weather_data():
 
     response = requests.get(base_url + "forecast", params=params, timeout=10)
 
-    # CRITICAL: Print the raw body to reveal the true error message!
-    print("--- SERVER TEXT RESPONSE START ---")
-    print(response.text)
-    print("--- SERVER TEXT RESPONSE END ---\n")
-
     return response.json()
 
 
