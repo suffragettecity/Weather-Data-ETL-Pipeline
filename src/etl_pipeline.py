@@ -5,8 +5,12 @@ from dotenv import load_dotenv
 import pandas as pd
 import requests
 from sqlalchemy import create_engine
+from pathlib import Path
 
-load_dotenv()
+script_dir = Path(__file__).resolve().parent
+env_path = script_dir.parent / ".env"  # Assumes .env is in the root
+
+load_dotenv(dotenv_path=env_path)
 
 
 def extract_weather_data():
@@ -15,22 +19,24 @@ def extract_weather_data():
     base_url = os.getenv("OPENWEATHER_API_URL")
     api_key = os.getenv("OPENWEATHER_API_KEY")
 
+    # temporary force check
+    print(f"\n[DEBUG] URL is: {base_url}")
+
     params = {
         "lat": -12.05,       # latitude and longitude for Lima, Peru
-        "long": -77.04,
+        "lon": -77.04,
         "appid": api_key,
         "units": "metric",
     }
 
-    try:
-        # pass params dictionary directly to requests.get
-        response = requests.get(base_url, params=params, timeout=10)
-        response.raise_for_status()
-        logging.info("Extraction successful")
-        return response.json()
-    except requests.exceptions.RequestException as e:
-        logging.error(f"Extraction failed: {e}")
-        raise
+    response = requests.get(base_url + "forecast", params=params, timeout=10)
+
+    # CRITICAL: Print the raw body to reveal the true error message!
+    print("--- SERVER TEXT RESPONSE START ---")
+    print(response.text)
+    print("--- SERVER TEXT RESPONSE END ---\n")
+
+    return response.json()
 
 
 def transform_weather_data(raw_data):
@@ -64,7 +70,7 @@ def transform_weather_data(raw_data):
 
 
 def load_to_postgres(df):
-    logging.info("Starting data load to postgresql...")
+    logging.info("Streaming data load to postgresql...")
 
     # get database credentials from environment variables
     db_user = os.getenv("DB_USER")
