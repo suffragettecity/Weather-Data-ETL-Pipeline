@@ -63,4 +63,5 @@ pip install -r requirements.txt
 
 ---
 ## What to add/improve
-Solve current PostgreSQL configuration errors (current). 
+1. RESOLVED: Solve current PostgreSQL configuration errors (current). 
+2. Create a second ETL pipeline to ingest and transform data into a data warehouse. 
