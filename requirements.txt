@@ -3,3 +3,4 @@ pandas
 requests
 sqlalchemy
 psycopg2-binary>=2.9
+google-cloud-bigquery==3.20.0
